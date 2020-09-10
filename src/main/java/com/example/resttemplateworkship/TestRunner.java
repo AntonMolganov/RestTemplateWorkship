@@ -3,6 +3,7 @@ package com.example.resttemplateworkship;
 
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.AsyncRestTemplate;
@@ -24,14 +25,17 @@ public class TestRunner {
     private static final String URL = "http://localhost:8080/post";
 
 
-    @Autowired
+    @Autowired @Qualifier("defaultRestTemplate")
     RestTemplate defaultRestTemplate;
 
     @Autowired
     AsyncRestTemplate asyncRestTemplate;
 
-    @Autowired
+    @Autowired @Qualifier("advancedRestTemplate")
     RestTemplate advancedRestTemplate;
+
+    @Autowired @Qualifier("advancedRestTemplate2")
+    RestTemplate advancedRestTemplate2;
 
     @Autowired
     private ForkJoinPool threadPool;
@@ -42,6 +46,8 @@ public class TestRunner {
         asyncTest();
         System.out.println();
         advancedTest();
+        System.out.println();
+        advancedTest2();
     }
 
     private void defaultTest() {
@@ -80,6 +86,18 @@ public class TestRunner {
         log("end advanced RestTemplate testing...");
     }
 
+    private void advancedTest2() {
+        log("start advanced2 RestTemplate testing...");
+
+        List<CompletableFuture<Void>> tasks = new LinkedList<>();
+        for (int i = 0; i < REQUESTS_NUM; i++) {
+            tasks.add(CompletableFuture.runAsync(this::runAdvancedPost2, threadPool));
+        }
+        tasks.forEach(CompletableFuture::join);
+
+        log("end advanced2 RestTemplate testing...");
+    }
+
     private void runDefaultPost() {
         UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(URL).build();
         defaultRestTemplate.postForEntity(uriComponents.toUriString(), new HttpEntity<>(null, null), String.class);
@@ -94,6 +112,11 @@ public class TestRunner {
     private void runAdvancedPost() {
         UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(URL).build();
         advancedRestTemplate.postForEntity(uriComponents.toUriString(), new HttpEntity<>(null, null), String.class);
+    }
+
+    private void runAdvancedPost2() {
+        UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(URL).build();
+        advancedRestTemplate2.postForEntity(uriComponents.toUriString(), new HttpEntity<>(null, null), String.class);
     }
 
 }
